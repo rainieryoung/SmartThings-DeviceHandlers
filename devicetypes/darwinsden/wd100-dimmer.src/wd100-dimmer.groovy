@@ -48,6 +48,8 @@
  *   Single-Tap Up     7        pressed
  *   Single-Tap Down   8        pressed
  *
+ *  001 Change Config Option for Double-Tap-Down from 25% to 50%
+ *  002 Address On/Off Behavior
  */
  
 metadata {
@@ -93,7 +95,10 @@ metadata {
     preferences {      
        input "doubleTapToFullBright", "bool", title: "Double-Tap Up sets to full brightness",  defaultValue: false,  displayDuringSetup: true, required: false	       
        input "singleTapToFullBright", "bool", title: "Single-Tap Up sets to full brightness",  defaultValue: false,  displayDuringSetup: true, required: false	
-       input "doubleTapDownToDim",    "bool", title: "Double-Tap Down sets to 25% level",      defaultValue: false,  displayDuringSetup: true, required: false	       
+       //>> 001
+       //input "doubleTapDownToDim",    "bool", title: "Double-Tap Down sets to 25% level",      defaultValue: false,  displayDuringSetup: true, required: false	       
+       input "doubleTapDownToDim",    "bool", title: "Double-Tap Down sets to 50% level",      defaultValue: false,  displayDuringSetup: true, required: false
+       //<< 001
        input "reverseSwitch", "bool", title: "Reverse Switch",  defaultValue: false,  displayDuringSetup: true, required: false	       
         
        input ( "localStepDuration", "number", title: "Press Configuration button after entering ramp rate preferences\n\nLocal Ramp Rate: Duration of each level (1-22)(1=10ms) [default: 3]", defaultValue: 3,range: "1..22", required: false)
@@ -310,18 +315,6 @@ def zwaveEvent(physicalgraph.zwave.commands.centralscenev1.CentralSceneNotificat
       case 1:
           // Up
           switch (cmd.keyAttributes) {
-              case 0:
-                   // Press Once
-                  result += createEvent(tapUp1Response("physical"))  
-                  result += createEvent([name: "switch", value: "on", type: "physical"])
-       
-                  if (singleTapToFullBright)
-                  {
-                     result += setLevel(99)
-                     result += response("delay 5000")
-                     result += response(zwave.switchMultilevelV1.switchMultilevelGet())
-                  } 
-                  break
               case 1:
                   result=createEvent([name: "switch", value: "on", type: "physical"])
                   break
@@ -336,13 +329,27 @@ def zwaveEvent(physicalgraph.zwave.commands.centralscenev1.CentralSceneNotificat
                   if (doubleTapToFullBright)
                   {
                      result += setLevel(99)
-                     result += response("delay 5000")
+                     result += response("delay 10000") //5000")
                      result += response(zwave.switchMultilevelV1.switchMultilevelGet())
                   }                    
                   break
               case 4:
                   // 3 Three times
                   result=createEvent(tapUp3Response("physical"))
+                  break
+              case 0:
+                  //>> 002
+                  //// Press Once
+                  //result += createEvent(tapUp1Response("physical"))  
+                  //result += createEvent([name: "switch", value: "on", type: "physical"])
+                  //  
+                  //if (singleTapToFullBright)
+                  //{
+                  //   result += setLevel(99)
+                  //   result += response("delay 5000")
+                  //   result += response(zwave.switchMultilevelV1.switchMultilevelGet())
+                  //}
+                  //<< 002
                   break
               default:
                   log.debug ("unexpected up press keyAttribute: $cmd.keyAttributes")
@@ -352,32 +359,41 @@ def zwaveEvent(physicalgraph.zwave.commands.centralscenev1.CentralSceneNotificat
       case 2:
           // Down
           switch (cmd.keyAttributes) {
-              case 0:
-                  // Press Once
-                  result += createEvent(tapDown1Response("physical"))
-                  result += createEvent([name: "switch", value: "off", type: "physical"]) 
-                  break
               case 1:
                   result=createEvent([name: "switch", value: "off", type: "physical"])
                   break
               case 2:
                   // Hold
                   result += createEvent(holdDownResponse("physical"))
-                  result += createEvent([name: "switch", value: "off", type: "physical"]) 
+                  //>> 002
+                  //Do not turn "off" with holdDown, should behave as "Dimmer Down"
+                  //result += createEvent([name: "switch", value: "off", type: "physical"])
+                  result += createEvent([name: "switch", value: "on", type: "physical"])
+                  //<< 002
                   break
               case 3: 
                   // 2 Times
                   result+=createEvent(tapDown2Response("physical"))
                   if (doubleTapDownToDim)
                   {
-                     result += setLevel(25)
-                     result += response("delay 5000")
+                     //>> 001
+                     //result += setLevel(25)
+                     result += setLevel(50)
+                     //<< 001
+                     result += response("delay 0") //5000")
                      result += response(zwave.switchMultilevelV1.switchMultilevelGet())
                   }  
                   break
               case 4:
                   // 3 Times
                   result=createEvent(tapDown3Response("physical"))
+                  break
+              case 0:
+                  //>> 002
+                  //// Press Once
+                  //result += createEvent(tapDown1Response("physical"))
+                  //result += createEvent([name: "switch", value: "off", type: "physical"]) 
+                  //<< 002
                   break
               default:
                   log.debug ("unexpected down press keyAttribute: $cmd.keyAttributes")
